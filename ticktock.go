@@ -3,55 +3,32 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/derwolfe/ticktock/parsing"
 	"io/ioutil"
 	"net/http"
 	"time"
 )
 
-const TIMEOUT = 3
-
-const GITHUB = "https://status.github.com/api/status.json"
-const CODECOV = "https://wdzsn5dlywj9.statuspage.io/api/v2/status.json"
-const TRAVIS = "https://pnpcptp8xh9k.statuspage.io/api/v2/status.json"
-const QUAY = "https://8szqd6w4s277.statuspage.io/api/v2/status.json"
+const (
+	TIMEOUT = 3 //seconds
+	GITHUB  = "https://status.github.com/api/status.json"
+	CODECOV = "https://wdzsn5dlywj9.statuspage.io/api/v2/status.json"
+	TRAVIS  = "https://pnpcptp8xh9k.statuspage.io/api/v2/status.json"
+	QUAY    = "https://8szqd6w4s277.statuspage.io/api/v2/status.json"
+)
 
 type status struct {
 	body []byte
 	url  string
 }
 
-// make a parser for the different kinds of status messages. statuspage statuses tend to all contain the same elements.
-type serviceState interface {
-	// given a message, parse the relevant elements into a single booleanvalue
-	parse(body []byte) (bool, error)
-
-	// get the current state
-	state()
-
-	// mutate self to update its state
-	update()
-}
-
-type statusPageOuter struct {
-	page string `json:-`
-}
-
-type statuspageStatus struct {
-	``
-}
-
-type githubStatus struct {
-	Status string `json`
-}
-
-type quayStatus struct {
-}
-
-// func (s *statuspageStatus) parse(body []byte) (bool, error) {
-//
+// var parsers make(map[string]Parser) {
+// 	"CODECOV":
+// 	"QUAY":
+// 	"TRAVIS":
+// 	"GITHUB":
 // }
 
-// Given a url, fetch and return a new status object
 func statusFetch(url string) (*status, error) {
 	timeout := time.Duration(TIMEOUT * time.Second)
 	client := http.Client{
