@@ -38,32 +38,34 @@ type Parser interface {
 }
 
 func (g *GithubStatus) Parse(body []byte) (*Unified, error) {
-	res := GithubStatus{}
-	json.Unmarshal(body, &res)
+	parsed := GithubStatus{}
+	json.Unmarshal(body, &parsed)
 
-	retval := Unified{}
-	if res.Status != "good" {
+	retval := Unified{
+		UpdatedAt: time.Now(),
+	}
+	if parsed.Status != "good" {
 		retval.Good = false
 	} else {
 		retval.Good = true
 	}
-	retval.UpdatedAt = time.Now()
 	return &retval, nil
 }
 
 func (g *StatusPageStatus) Parse(body []byte) (*Unified, error) {
-	res := StatusPageStatus{
+	parsed := StatusPageStatus{
 		Page:   StatusPageInnerPage{},
 		Status: StatusPageInnerStatus{},
 	}
-	json.Unmarshal(body, &res)
+	json.Unmarshal(body, &parsed)
 
-	retval := Unified{}
-	if res.Status.Inidicator != "None" {
+	retval := Unified{
+		UpdatedAt: time.Now(),
+	}
+	if parsed.Status.Indicator != "None" {
 		retval.Good = false
 	} else {
 		retval.Good = true
 	}
-	retval.UpdatedAt = time.Now()
 	return &retval, nil
 }

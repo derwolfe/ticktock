@@ -1,11 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/derwolfe/ticktock/parsing"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -50,10 +50,24 @@ func statusFetch(url string) (*status, error) {
 func main() {
 	sources := []string{GITHUB, TRAVIS, QUAY, CODECOV}
 	for _, url := range sources {
-		status, err := statusFetch(url)
+		statusBody, err := statusFetch(url)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(string(status.body))
+		var parsed *parsing.Unified
+
+		switch url {
+		case GITHUB:
+			source := parsing.GithubStatus{}
+			parsed, _ = source.Parse(statusBody.body)
+		case TRAVIS:
+		case QUAY:
+		case CODECOV:
+			source := parsing.StatusPageStatus{}
+			parsed, _ = source.Parse(statusBody.body)
+		}
+
+		fmt.Println(string(statusBody.body))
+		fmt.Println(strconv.FormatBool(parsed.Good))
 	}
 }
