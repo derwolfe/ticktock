@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -31,18 +32,26 @@ type serviceState interface {
 	update()
 }
 
+type statusPageOuter struct {
+	page string `json:-`
+}
+
 type statuspageStatus struct {
-	state bool
+	``
 }
 
 type githubStatus struct {
-	state bool
+	Status string `json`
+}
+
+type quayStatus struct {
 }
 
 // func (s *statuspageStatus) parse(body []byte) (bool, error) {
 //
 // }
 
+// Given a url, fetch and return a new status object
 func statusFetch(url string) (*status, error) {
 	timeout := time.Duration(TIMEOUT * time.Second)
 	client := http.Client{
