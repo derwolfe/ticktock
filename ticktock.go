@@ -59,15 +59,12 @@ func main() {
 		switch url {
 		case GITHUB:
 			source := parsing.GithubStatus{}
-			parsed, _ = source.Parse(statusBody.body)
-		case TRAVIS:
-		case QUAY:
-		case CODECOV:
+			parsed = source.Parse(statusBody.body)
+		case CODECOV, TRAVIS, QUAY:
 			source := parsing.StatusPageStatus{}
-			parsed, _ = source.Parse(statusBody.body)
+			parsed = source.Parse(statusBody.body)
 		}
 
-		fmt.Println(string(statusBody.body))
 		fmt.Println(strconv.FormatBool(parsed.Good))
 	}
 }

@@ -32,12 +32,11 @@ type Unified struct {
 	UpdatedAt time.Time
 }
 
-// Should parser copy memory instead of allocating constantly?
 type Parser interface {
-	Parse(body []byte) (Unified, error)
+	Parse(body []byte) *Unified
 }
 
-func (g *GithubStatus) Parse(body []byte) (*Unified, error) {
+func (g *GithubStatus) Parse(body []byte) *Unified {
 	parsed := GithubStatus{}
 	json.Unmarshal(body, &parsed)
 
@@ -49,10 +48,10 @@ func (g *GithubStatus) Parse(body []byte) (*Unified, error) {
 	} else {
 		retval.Good = true
 	}
-	return &retval, nil
+	return &retval
 }
 
-func (g *StatusPageStatus) Parse(body []byte) (*Unified, error) {
+func (g *StatusPageStatus) Parse(body []byte) *Unified {
 	parsed := StatusPageStatus{
 		Page:   StatusPageInnerPage{},
 		Status: StatusPageInnerStatus{},
@@ -62,10 +61,10 @@ func (g *StatusPageStatus) Parse(body []byte) (*Unified, error) {
 	retval := Unified{
 		UpdatedAt: time.Now(),
 	}
-	if parsed.Status.Indicator != "None" {
+	if parsed.Status.Indicator != "none" {
 		retval.Good = false
 	} else {
 		retval.Good = true
 	}
-	return &retval, nil
+	return &retval
 }
