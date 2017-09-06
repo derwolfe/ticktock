@@ -17,19 +17,7 @@ const (
 	QUAY    = "https://8szqd6w4s277.statuspage.io/api/v2/status.json"
 )
 
-type status struct {
-	body []byte
-	url  string
-}
-
-// var parsers make(map[string]Parser) {
-// 	"CODECOV":
-// 	"QUAY":
-// 	"TRAVIS":
-// 	"GITHUB":
-// }
-
-func statusFetch(url string) (*status, error) {
+func statusFetch(url string) (*[]byte, error) {
 	timeout := time.Duration(TIMEOUT * time.Second)
 	client := http.Client{
 		Timeout: timeout,
@@ -44,27 +32,27 @@ func statusFetch(url string) (*status, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &status{body: body, url: url}, nil
+	return &body, nil
 }
 
 func main() {
 	sources := []string{GITHUB, TRAVIS, QUAY, CODECOV}
 	for _, url := range sources {
-		statusBody, err := statusFetch(url)
+		body, err := statusFetch(url)
 		if err != nil {
 			panic(err)
 		}
-		var parsed *parsing.Unified
+		var good bool
 
 		switch url {
 		case GITHUB:
 			source := parsing.GithubStatus{}
-			parsed = source.Parse(statusBody.body)
+			good = source.Parse(body)
 		case CODECOV, TRAVIS, QUAY:
 			source := parsing.StatusPageStatus{}
-			parsed = source.Parse(statusBody.body)
+			good = source.Parse(body)
 		}
 
-		fmt.Println(strconv.FormatBool(parsed.Good))
+		fmt.Println(strconv.FormatBool(good))
 	}
 }

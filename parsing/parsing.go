@@ -27,44 +27,21 @@ type GithubStatus struct {
 	LastUpdated time.Time `json:"last_updated"`
 }
 
-type Unified struct {
-	Good      bool
-	UpdatedAt time.Time
-}
-
 type Parser interface {
-	Parse(body []byte) *Unified
+	Parse(body *[]byte) bool
 }
 
-func (g *GithubStatus) Parse(body []byte) *Unified {
+func (g *GithubStatus) Parse(body *[]byte) bool {
 	parsed := GithubStatus{}
-	json.Unmarshal(body, &parsed)
-
-	retval := Unified{
-		UpdatedAt: time.Now(),
-	}
-	if parsed.Status != "good" {
-		retval.Good = false
-	} else {
-		retval.Good = true
-	}
-	return &retval
+	json.Unmarshal(*body, &parsed)
+	return parsed.Status == "good"
 }
 
-func (g *StatusPageStatus) Parse(body []byte) *Unified {
+func (g *StatusPageStatus) Parse(body *[]byte) bool {
 	parsed := StatusPageStatus{
 		Page:   StatusPageInnerPage{},
 		Status: StatusPageInnerStatus{},
 	}
-	json.Unmarshal(body, &parsed)
-
-	retval := Unified{
-		UpdatedAt: time.Now(),
-	}
-	if parsed.Status.Indicator != "none" {
-		retval.Good = false
-	} else {
-		retval.Good = true
-	}
-	return &retval
+	json.Unmarshal(*body, &parsed)
+	return parsed.Status.Indicator == "none"
 }
