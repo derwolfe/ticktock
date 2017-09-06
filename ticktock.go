@@ -5,7 +5,7 @@ import (
 	"github.com/derwolfe/ticktock/parsing"
 	"io/ioutil"
 	"net/http"
-	"strconv"
+	//"strconv"
 	"time"
 )
 
@@ -35,6 +35,13 @@ func statusFetch(url string) (*[]byte, error) {
 	return &body, nil
 }
 
+type Refined struct {
+	Url           string
+	LastUpdated   time.Time
+	Good          bool
+	SourceMessage *[]byte
+}
+
 func main() {
 	sources := []string{GITHUB, TRAVIS, QUAY, CODECOV}
 	for _, url := range sources {
@@ -42,8 +49,8 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		var good bool
 
+		var good bool
 		switch url {
 		case GITHUB:
 			source := parsing.GithubStatus{}
@@ -53,6 +60,13 @@ func main() {
 			good = source.Parse(body)
 		}
 
-		fmt.Println(strconv.FormatBool(good))
+		r := Refined{
+			Good:          good,
+			SourceMessage: body,
+			LastUpdated:   time.Now(),
+			Url:           url,
+		}
+
+		fmt.Println(string(*r.SourceMessage))
 	}
 }
