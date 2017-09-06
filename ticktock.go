@@ -24,7 +24,6 @@ func statusFetch(url string) (*[]byte, error) {
 		Timeout: timeout,
 	}
 	resp, err := client.Get(url)
-	// how to know if there was a timeout?
 	if err != nil {
 		return nil, err
 	}
@@ -36,38 +35,40 @@ func statusFetch(url string) (*[]byte, error) {
 	return &body, nil
 }
 
-type Refined struct {
-	Url           string
-	LastUpdated   time.Time
-	Good          bool
-	SourceMessage *[]byte
-}
-
 func main() {
+	store := state.NewStore()
+	var wg sync.WaitGroup
+
 	sources := []string{GITHUB, TRAVIS, QUAY, CODECOV}
+	// match the length of sources
+	wg.Add(4)
 	for _, url := range sources {
-		body, err := statusFetch(url)
-		if err != nil {
-			panic(err)
-		}
+		go func(url string) {
+			defer wg.Done()
+			body, err := statusFetch(url)
+			if err != nil {
+				panic(err)
+			}
 
-		var good bool
-		switch url {
-		case GITHUB:
-			source := parsing.GithubStatus{}
-			good = source.Parse(body)
-		case CODECOV, TRAVIS, QUAY:
-			source := parsing.StatusPageStatus{}
-			good = source.Parse(body)
-		}
+			var good bool
+			switch url {
+			case GITHUB:
+				source := parsing.GithubStatus{}
+				good = source.Parse(body)
+			case CODECOV, TRAVIS, QUAY:
+				source := parsing.StatusPageStatus{}
+				good = source.Parse(body)
+			}
 
-		r := Refined{
-			Good:          good,
-			SourceMessage: body,
-			LastUpdated:   time.Now(),
-			Url:           url,
-		}
-
-		fmt.Println(string(*r.SourceMessage))
+			r := state.Refined{
+				Good:          good,
+				SourceMessage: body,
+				LastUpdated:   time.Now(),
+				Url:           url,
+			}
+			store.Write(&r)
+		}(url)
 	}
+	wg.Wait()
+	fmt.Println("%#v", *store)
 }
