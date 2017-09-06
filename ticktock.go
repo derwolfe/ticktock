@@ -3,9 +3,10 @@ package main
 import (
 	"fmt"
 	"github.com/derwolfe/ticktock/parsing"
+	"github.com/derwolfe/ticktock/state"
 	"io/ioutil"
 	"net/http"
-	//"strconv"
+	"sync"
 	"time"
 )
 

@@ -1,32 +1,47 @@
 package state
 
 import (
-	"github.com/derwolfe/ticktock/parsing"
+	"errors"
 	"sync"
+	"time"
 )
 
-type State struct {
-	statuses map[string]*parsing.Unified
-	mutex    sync.Mutex
+type Refined struct {
+	Url           string
+	LastUpdated   time.Time
+	Good          bool
+	SourceMessage *[]byte
+}
+
+type Store struct {
+	statuses map[string]*Refined
+	mutex    *sync.RWMutex
+}
+
+func NewStore() *Store {
+	return &Store{
+		statuses: make(map[string]*Refined),
+		mutex:    new(sync.RWMutex),
+	}
 }
 
 type ReadWrite interface {
-	Read(url string) (*parsing.Unified, error)
-	Write(url string, newState *parsing.Unified)
+	Read(url string) (*Refined, error)
+	Write(newStore *Refined)
 }
 
-func (s *State) Read(url string) (*parsing.Unified, error) {
-	s.RWLock()
-	state, err := s[url]
-	if err != nil {
-		return nil, err
+func (s *Store) Read(url string) (*Refined, error) {
+	s.mutex.RLock()
+	target, ok := s.statuses[url]
+	s.mutex.RUnlock()
+	if ok == false {
+		return nil, errors.New("URL not found")
 	}
-	s.RWUnlock()
-	return state, nil
+	return target, nil
 }
 
-func (s *State) Write(url string, newState *parsing.Unified) {
-	s.Lock()
-	s[url] = newState
-	s.Unlock()
+func (s *Store) Write(newStore *Refined) {
+	s.mutex.Lock()
+	s.statuses[newStore.Url] = newStore
+	s.mutex.Unlock()
 }
