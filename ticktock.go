@@ -21,10 +21,9 @@ const (
 	QUAY    = "https://8szqd6w4s277.statuspage.io/api/v2/status.json"
 )
 
-// GLOBAL :barf:
 var (
 	DataStore      = state.NewStore()
-	inflightStatus = prometheus.NewGauge(
+	InflightStatus = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "ticktock",
 			Subsystem: "status_checks",
@@ -34,7 +33,7 @@ var (
 )
 
 func metricsInit() {
-	prometheus.MustRegister(inflightStatus)
+	prometheus.MustRegister(InflightStatus)
 }
 
 func updaterInit() {
@@ -76,8 +75,8 @@ func updateState(store *state.Store) {
 	for _, url := range sources {
 		go func(url string) {
 			log.Printf("Started Fetching: %s", url)
-			inflightStatus.Inc()
-			defer inflightStatus.Dec()
+			InflightStatus.Inc()
+			defer InflightStatus.Dec()
 			defer wg.Done()
 			body, err := statusFetch(url)
 			// bail out after a few attempts if we've encountered a few errors
