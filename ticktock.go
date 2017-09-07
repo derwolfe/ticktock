@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"github.com/derwolfe/ticktock/parsing"
 	"github.com/derwolfe/ticktock/state"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -17,6 +18,9 @@ const (
 	TRAVIS  = "https://pnpcptp8xh9k.statuspage.io/api/v2/status.json"
 	QUAY    = "https://8szqd6w4s277.statuspage.io/api/v2/status.json"
 )
+
+// GLOBAL :barf:
+var DataStore = state.NewStore()
 
 func statusFetch(url string) (*[]byte, error) {
 	timeout := time.Duration(TIMEOUT * time.Second)
@@ -35,13 +39,12 @@ func statusFetch(url string) (*[]byte, error) {
 	return &body, nil
 }
 
-func main() {
-	store := state.NewStore()
+func updateState(store *state.Store) {
 	var wg sync.WaitGroup
-
 	sources := []string{GITHUB, TRAVIS, QUAY, CODECOV}
 	// match the length of sources
 	wg.Add(4)
+
 	for _, url := range sources {
 		go func(url string) {
 			defer wg.Done()
@@ -70,5 +73,35 @@ func main() {
 		}(url)
 	}
 	wg.Wait()
-	fmt.Println("%#v", *store)
+	log.Println("Fetched statuses")
+}
+
+func status(w http.ResponseWriter, r *http.Request) {
+	js, err := json.Marshal(DataStore)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
+}
+
+func main() {
+	ticker := time.NewTicker(1 * time.Minute)
+
+	updateState(DataStore)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				//Call the periodic function here.
+				updateState(DataStore)
+			}
+		}
+	}()
+
+	http.HandleFunc("/", status) // set router
+	http.ListenAndServe(":9090", nil)
+	quit := make(chan bool, 1)
+	<-quit
 }

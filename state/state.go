@@ -14,14 +14,16 @@ type Refined struct {
 }
 
 type Store struct {
-	statuses map[string]*Refined
-	mutex    *sync.RWMutex
+	LastUpdated time.Time
+	Statuses    map[string]*Refined
+	mutex       *sync.RWMutex
 }
 
 func NewStore() *Store {
 	return &Store{
-		statuses: make(map[string]*Refined),
-		mutex:    new(sync.RWMutex),
+		LastUpdated: time.Now(),
+		Statuses:    make(map[string]*Refined),
+		mutex:       new(sync.RWMutex),
 	}
 }
 
@@ -32,7 +34,7 @@ type ReadWrite interface {
 
 func (s *Store) Read(url string) (*Refined, error) {
 	s.mutex.RLock()
-	target, ok := s.statuses[url]
+	target, ok := s.Statuses[url]
 	s.mutex.RUnlock()
 	if ok == false {
 		return nil, errors.New("URL not found")
@@ -42,6 +44,7 @@ func (s *Store) Read(url string) (*Refined, error) {
 
 func (s *Store) Write(newStore *Refined) {
 	s.mutex.Lock()
-	s.statuses[newStore.Url] = newStore
+	s.Statuses[newStore.Url] = newStore
+	s.LastUpdated = time.Now()
 	s.mutex.Unlock()
 }
