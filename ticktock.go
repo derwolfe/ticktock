@@ -102,6 +102,7 @@ func main() {
 
 	http.HandleFunc("/", status) // set router
 	http.ListenAndServe(":9090", nil)
+
 	quit := make(chan bool, 1)
 	<-quit
 }
