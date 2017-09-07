@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"github.com/derwolfe/ticktock/parsing"
 	"github.com/derwolfe/ticktock/state"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -20,7 +22,20 @@ const (
 )
 
 // GLOBAL :barf:
-var DataStore = state.NewStore()
+var (
+	DataStore      = state.NewStore()
+	inflightStatus = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "ticktock",
+			Subsystem: "status_checks",
+			Name:      "in_flight",
+			Help:      "Number of in flight status checks.",
+		})
+)
+
+func metricsInit() {
+	prometheus.MustRegister(inflightStatus)
+}
 
 func statusFetch(url string) (*[]byte, error) {
 	timeout := time.Duration(TIMEOUT * time.Second)
@@ -47,10 +62,14 @@ func updateState(store *state.Store) {
 
 	for _, url := range sources {
 		go func(url string) {
+			inflightStatus.Inc()
+			defer inflightStatus.Dec()
 			defer wg.Done()
 			body, err := statusFetch(url)
+			// bail out after a few attempts if we've encountered a few errors
 			if err != nil {
-				panic(err)
+				log.Printf("Error fetching: %s, %s", url, err)
+				return
 			}
 
 			var good bool
@@ -87,6 +106,7 @@ func status(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	metricsInit()
 	ticker := time.NewTicker(1 * time.Minute)
 
 	updateState(DataStore)
@@ -100,6 +120,7 @@ func main() {
 		}
 	}()
 
+	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/", status) // set router
 	http.ListenAndServe(":9090", nil)
 
