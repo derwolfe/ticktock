@@ -37,6 +37,19 @@ func metricsInit() {
 	prometheus.MustRegister(inflightStatus)
 }
 
+func updaterInit() {
+	ticker := time.NewTicker(1 * time.Minute)
+	updateState(DataStore)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				updateState(DataStore)
+			}
+		}
+	}()
+}
+
 func statusFetch(url string) (*[]byte, error) {
 	timeout := time.Duration(TIMEOUT * time.Second)
 	client := http.Client{
@@ -62,6 +75,7 @@ func updateState(store *state.Store) {
 
 	for _, url := range sources {
 		go func(url string) {
+			log.Printf("Started Fetching: %s", url)
 			inflightStatus.Inc()
 			defer inflightStatus.Dec()
 			defer wg.Done()
@@ -71,6 +85,7 @@ func updateState(store *state.Store) {
 				log.Printf("Error fetching: %s, %s", url, err)
 				return
 			}
+			log.Printf("Succeeded fetching: %s", url)
 
 			var good bool
 			switch url {
@@ -92,7 +107,6 @@ func updateState(store *state.Store) {
 		}(url)
 	}
 	wg.Wait()
-	log.Println("Fetched statuses")
 }
 
 func status(w http.ResponseWriter, r *http.Request) {
@@ -107,23 +121,9 @@ func status(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	metricsInit()
-	ticker := time.NewTicker(1 * time.Minute)
-
-	updateState(DataStore)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				//Call the periodic function here.
-				updateState(DataStore)
-			}
-		}
-	}()
+	updaterInit()
 
 	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/", status) // set router
 	http.ListenAndServe(":9090", nil)
-
-	quit := make(chan bool, 1)
-	<-quit
 }

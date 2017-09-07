@@ -14,8 +14,8 @@ type Refined struct {
 }
 
 type Store struct {
-	LastUpdated time.Time
 	Statuses    map[string]*Refined
+	LastUpdated time.Time
 	mutex       *sync.RWMutex
 }
 
@@ -50,8 +50,8 @@ func (s *Store) Write(newStore *Refined) {
 }
 
 type Front struct {
-	Alarm       bool      `json:"alarm"`
-	LastUpdated time.Time `json:"last_updated"`
+	Alarm       bool       `json:"alarm"`
+	LastUpdated *time.Time `json:"last_updated"`
 }
 
 func (s *Store) CurrentValue() *Front {
@@ -60,7 +60,7 @@ func (s *Store) CurrentValue() *Front {
 	for _, r := range s.Statuses {
 		acc = acc && r.Good
 	}
-	ret := &Front{Alarm: acc, LastUpdated: s.LastUpdated}
+	ret := &Front{Alarm: acc, LastUpdated: &s.LastUpdated}
 	s.mutex.RUnlock()
 	return ret
 }
