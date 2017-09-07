@@ -79,7 +79,6 @@ func updateState(store *state.Store) {
 			defer InflightStatus.Dec()
 			defer wg.Done()
 			body, err := statusFetch(url)
-			// bail out after a few attempts if we've encountered a few errors
 			if err != nil {
 				log.Printf("Error fetching: %s, %s", url, err)
 				return
@@ -118,7 +117,7 @@ func status(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
-func Log(handler http.Handler) http.Handler {
+func requestLog(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s %s %s", r.RemoteAddr, r.Method, r.URL)
 		handler.ServeHTTP(w, r)
@@ -130,6 +129,6 @@ func main() {
 	updaterInit()
 
 	http.Handle("/metrics", promhttp.Handler())
-	http.HandleFunc("/", status) // set router
-	http.ListenAndServe(":9090", Log(http.DefaultServeMux))
+	http.HandleFunc("/", status)
+	http.ListenAndServe(":9090", requestLog(http.DefaultServeMux))
 }
