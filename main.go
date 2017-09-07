@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	TIMEOUT = 3 //seconds
+	TIMEOUT = 3 * time.Second
 	GITHUB  = "https://status.github.com/api/status.json"
 	CODECOV = "https://wdzsn5dlywj9.statuspage.io/api/v2/status.json"
 	TRAVIS  = "https://pnpcptp8xh9k.statuspage.io/api/v2/status.json"
@@ -40,20 +40,13 @@ func updaterInit() {
 	ticker := time.NewTicker(1 * time.Minute)
 	updateState(DataStore)
 	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				updateState(DataStore)
-			}
+		for _ = range ticker.C {
+			updateState(DataStore)
 		}
 	}()
 }
 
-func statusFetch(url string) (*[]byte, error) {
-	timeout := time.Duration(TIMEOUT * time.Second)
-	client := http.Client{
-		Timeout: timeout,
-	}
+func statusFetch(url string, client http.Client) ([]byte, error) {
 	resp, err := client.Get(url)
 	if err != nil {
 		return nil, err
@@ -63,14 +56,20 @@ func statusFetch(url string) (*[]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &body, nil
+	return body, nil
 }
 
 func updateState(store *state.Store) {
-	var wg sync.WaitGroup
+	wg := sync.WaitGroup{}
+
 	sources := []string{GITHUB, TRAVIS, QUAY, CODECOV}
 	// match the length of sources
-	wg.Add(4)
+	wg.Add(len(sources))
+
+	timeout := time.Duration(TIMEOUT)
+	client := http.Client{
+		Timeout: timeout,
+	}
 
 	for _, url := range sources {
 		go func(url string) {
@@ -78,23 +77,23 @@ func updateState(store *state.Store) {
 			InflightStatus.Inc()
 			defer InflightStatus.Dec()
 			defer wg.Done()
-			body, err := statusFetch(url)
+			body, err := statusFetch(url, client)
 			if err != nil {
 				log.Printf("Error fetching: %s, %s", url, err)
 				return
 			}
 			log.Printf("Succeeded fetching: %s", url)
 
-			var good bool
+			var parser parsing.Parser
 			switch url {
 			case GITHUB:
-				source := parsing.GithubStatus{}
-				good = source.Parse(body)
+				parser = parsing.GithubParser
 			case CODECOV, TRAVIS, QUAY:
-				source := parsing.StatusPageStatus{}
-				good = source.Parse(body)
+				parser = parsing.StatusPageParser
+			default:
+				parser = parsing.DefaultParser
 			}
-
+			good := parser(body)
 			r := state.Refined{
 				Good:          good,
 				SourceMessage: body,

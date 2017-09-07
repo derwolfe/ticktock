@@ -27,21 +27,23 @@ type GithubStatus struct {
 	LastUpdated time.Time `json:"last_updated"`
 }
 
-type Parser interface {
-	Parse(body *[]byte) bool
-}
+type Parser func([]byte) bool
 
-func (g *GithubStatus) Parse(body *[]byte) bool {
+func GithubParser(body []byte) bool {
 	parsed := GithubStatus{}
-	json.Unmarshal(*body, &parsed)
+	json.Unmarshal(body, &parsed)
 	return parsed.Status == "good"
 }
 
-func (g *StatusPageStatus) Parse(body *[]byte) bool {
+func StatusPageParser(body []byte) bool {
 	parsed := StatusPageStatus{
 		Page:   StatusPageInnerPage{},
 		Status: StatusPageInnerStatus{},
 	}
-	json.Unmarshal(*body, &parsed)
+	json.Unmarshal(body, &parsed)
 	return parsed.Status.Indicator == "none"
+}
+
+func DefaultParser(body []byte) bool {
+	return false
 }

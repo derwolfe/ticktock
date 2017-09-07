@@ -10,20 +10,19 @@ type Refined struct {
 	Url           string
 	LastUpdated   time.Time
 	Good          bool
-	SourceMessage *[]byte
+	SourceMessage []byte
 }
 
 type Store struct {
+	sync.RWMutex
 	Statuses    map[string]*Refined
 	LastUpdated time.Time
-	mutex       *sync.RWMutex
 }
 
 func NewStore() *Store {
 	return &Store{
 		LastUpdated: time.Now(),
 		Statuses:    make(map[string]*Refined),
-		mutex:       new(sync.RWMutex),
 	}
 }
 
@@ -33,35 +32,35 @@ type ReadWrite interface {
 	CurrentValue() *Front
 }
 
-func (s *Store) Read(url string) (*Refined, error) {
-	s.mutex.RLock()
+func (s Store) Read(url string) (*Refined, error) {
+	s.RLock()
 	target, ok := s.Statuses[url]
-	s.mutex.RUnlock()
+	s.RUnlock()
 	if ok == false {
 		return nil, errors.New("URL not found")
 	}
 	return target, nil
 }
 
-func (s *Store) Write(newStore *Refined) {
-	s.mutex.Lock()
-	s.Statuses[newStore.Url] = newStore
+func (s *Store) Write(status *Refined) {
+	s.Lock()
+	s.Statuses[status.Url] = status
 	s.LastUpdated = time.Now()
-	s.mutex.Unlock()
+	s.Unlock()
 }
 
 type Front struct {
-	Alarm       bool       `json:"alarm"`
-	LastUpdated *time.Time `json:"last_updated"`
+	Alarm       bool      `json:"alarm"`
+	LastUpdated time.Time `json:"last_updated"`
 }
 
-func (s *Store) CurrentValue() *Front {
-	s.mutex.RLock()
+func (s Store) CurrentValue() *Front {
+	s.RLock()
 	acc := true
 	for _, r := range s.Statuses {
 		acc = acc && r.Good
 	}
-	ret := &Front{Alarm: acc, LastUpdated: &s.LastUpdated}
-	s.mutex.RUnlock()
+	ret := &Front{Alarm: acc, LastUpdated: s.LastUpdated}
+	s.RUnlock()
 	return ret
 }
