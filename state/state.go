@@ -48,3 +48,19 @@ func (s *Store) Write(newStore *Refined) {
 	s.LastUpdated = time.Now()
 	s.mutex.Unlock()
 }
+
+type Front struct {
+	Alarm       bool      `json:"alarm"`
+	LastUpdated time.Time `json:"last_updated"`
+}
+
+func (s *Store) CurrentValue() *Front {
+	s.mutex.RLock()
+	acc := true
+	for _, r := range s.Statuses {
+		acc = acc && r.Good
+	}
+	ret := &Front{Alarm: acc, LastUpdated: s.LastUpdated}
+	s.mutex.RUnlock()
+	return ret
+}
