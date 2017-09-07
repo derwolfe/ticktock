@@ -30,6 +30,7 @@ func NewStore() *Store {
 type ReadWrite interface {
 	Read(url string) (*Refined, error)
 	Write(newStore *Refined)
+	CurrentValue() *Front
 }
 
 func (s *Store) Read(url string) (*Refined, error) {
