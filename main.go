@@ -107,7 +107,7 @@ func updateState(store *state.Store) {
 }
 
 func status(w http.ResponseWriter, r *http.Request) {
-	js, err := json.Marshal(DataStore.CurrentValue())
+	js, err := json.Marshal(DataStore.Read())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
