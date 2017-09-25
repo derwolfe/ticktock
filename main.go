@@ -93,13 +93,7 @@ func updateState(store *state.Store) {
 			default:
 				parser = parsing.DefaultParser
 			}
-			good := parser(body)
-			r := state.Refined{
-				Good:          good,
-				SourceMessage: body,
-				LastUpdated:   time.Now(),
-				Url:           url,
-			}
+			r := parser(body)
 			store.Write(&r)
 		}(url)
 	}

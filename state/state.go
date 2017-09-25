@@ -9,7 +9,8 @@ type Refined struct {
 	Url           string
 	LastUpdated   time.Time
 	Good          bool
-	SourceMessage []byte
+	ServiceName   string
+	SourceMessage string
 }
 
 type Store struct {
@@ -37,14 +38,12 @@ type Write interface {
 func (s *Store) Write(status *Refined) {
 	s.Lock()
 	defer s.Unlock()
-	// reevaluate whether or not alarm state is bad and add a new status
-	// message from travis. This should be parsed a bit better
-	s.Statuses[status.Url] = status
+	s.Statuses[status.ServiceName] = status
 
 	acc := true
 	for _, r := range s.Statuses {
 		acc = acc && r.Good
-		s.Bodies[r.Url] = string(r.SourceMessage)
+		s.Bodies[status.Url] = r.SourceMessage
 	}
 	s.Alarm = !acc
 	s.LastUpdated = time.Now()

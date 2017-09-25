@@ -2,6 +2,7 @@ package parsing
 
 import (
 	"encoding/json"
+	"github.com/derwolfe/ticktock/state"
 	"time"
 )
 
@@ -27,23 +28,37 @@ type GithubStatus struct {
 	LastUpdated time.Time `json:"last_updated"`
 }
 
-type Parser func([]byte) bool
+type Parser func([]byte) state.Refined
 
-func GithubParser(body []byte) bool {
+func GithubParser(body []byte) state.Refined {
 	parsed := GithubStatus{}
 	json.Unmarshal(body, &parsed)
-	return parsed.Status == "good"
+	good := parsed.Status == "good"
+	return state.Refined{
+		Url:           "https://status.github.com/api/status.json",
+		LastUpdated:   parsed.LastUpdated,
+		ServiceName:   "Github",
+		SourceMessage: parsed.Status,
+		Good:          good,
+	}
 }
 
-func StatusPageParser(body []byte) bool {
+func StatusPageParser(body []byte) state.Refined {
 	parsed := StatusPageStatus{
 		Page:   StatusPageInnerPage{},
 		Status: StatusPageInnerStatus{},
 	}
 	json.Unmarshal(body, &parsed)
-	return parsed.Status.Indicator == "none"
+	good := parsed.Status.Indicator == "none"
+	return state.Refined{
+		Url:           parsed.Page.Url,
+		LastUpdated:   parsed.Page.UpdatedAt,
+		ServiceName:   parsed.Page.Name,
+		SourceMessage: parsed.Status.Description,
+		Good:          good,
+	}
 }
 
-func DefaultParser(body []byte) bool {
-	return false
+func DefaultParser(body []byte) state.Refined {
+	return state.Refined{}
 }
