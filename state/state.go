@@ -17,6 +17,7 @@ type Store struct {
 	sync.RWMutex
 	Statuses    map[string]*Refined
 	LastUpdated time.Time
+	Alarm       bool
 }
 
 func NewStore() *Store {
@@ -45,6 +46,12 @@ func (s Store) Read(url string) (*Refined, error) {
 func (s *Store) Write(status *Refined) {
 	s.Lock()
 	s.Statuses[status.Url] = status
+	acc := true
+	for _, r := range s.Statuses {
+		acc = acc && r.Good
+	}
+
+	s.Alarm = !acc
 	s.LastUpdated = time.Now()
 	s.Unlock()
 }
@@ -56,11 +63,7 @@ type Front struct {
 
 func (s Store) CurrentValue() *Front {
 	s.RLock()
-	acc := true
-	for _, r := range s.Statuses {
-		acc = acc && r.Good
-	}
-	ret := &Front{Alarm: acc, LastUpdated: s.LastUpdated}
+	ret := &Front{LastUpdated: s.LastUpdated, Alarm: s.Alarm}
 	s.RUnlock()
 	return ret
 }
