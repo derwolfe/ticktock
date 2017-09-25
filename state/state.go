@@ -22,6 +22,8 @@ type Store struct {
 }
 
 func NewStore() *Store {
+	// we're caching bodies simply due to laziness. Otherwise, we
+	// have to do allocations on every read which is dumb
 	return &Store{
 		LastUpdated: time.Now(),
 		Statuses:    make(map[string]*Refined),
@@ -37,7 +39,6 @@ type Write interface {
 
 func (s *Store) Write(status *Refined) {
 	s.Lock()
-	defer s.Unlock()
 	s.Statuses[status.ServiceName] = status
 
 	acc := true
@@ -47,6 +48,7 @@ func (s *Store) Write(status *Refined) {
 	}
 	s.Alarm = !acc
 	s.LastUpdated = time.Now()
+	s.Unlock()
 }
 
 type Front struct {
