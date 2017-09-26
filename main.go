@@ -121,7 +121,8 @@ func main() {
 	metricsInit()
 	updaterInit()
 
+	http.Handle("/", http.FileServer(http.Dir("/src/github.com/derwolfe/ticktock/static/")))
 	http.Handle("/metrics", promhttp.Handler())
-	http.HandleFunc("/", status)
+	http.HandleFunc("/api", status)
 	http.ListenAndServe(":9090", requestLog(http.DefaultServeMux))
 }
